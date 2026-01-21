@@ -1,8 +1,5 @@
-
 import React from 'react';
 import { Lesson, Milestone, MilestoneStatus } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-// Added CheckCircle2 to the imports from lucide-react
 import { PlayCircle, Trophy, ListTodo, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -29,7 +26,8 @@ const Dashboard: React.FC<DashboardProps> = ({ lessons, completedIds, milestones
     const mLessons = lessons.filter(l => l.id <= m.maxLessonId);
     const done = mLessons.filter(l => completedIds.includes(l.id)).length;
     return {
-      name: `Marco ${m.id}`,
+      label: `M${m.id}`,
+      fullName: m.name.split(':')[0],
       progress: Math.round((done / mLessons.length) * 100),
     };
   });
@@ -54,7 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({ lessons, completedIds, milestones
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
           <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600">
-            {/* Fixed: CheckCircle2 is now imported correctly from lucide-react */}
             <CheckCircle2 size={24} />
           </div>
           <div>
@@ -138,33 +135,46 @@ const Dashboard: React.FC<DashboardProps> = ({ lessons, completedIds, milestones
           </div>
         </div>
 
-        {/* Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        {/* Custom Dashboard Chart */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold text-slate-900">Progresso por Marcos</h3>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                 <div className="w-3 h-3 bg-indigo-500 rounded-sm" /> % Concluído
+                 <div className="w-3 h-3 bg-indigo-500 rounded-sm" /> Em progresso
+               </div>
+               <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                 <div className="w-3 h-3 bg-emerald-500 rounded-sm" /> Completo
                </div>
             </div>
           </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} interval={0} />
-                <YAxis hide />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="progress" radius={[4, 4, 0, 0]} barSize={24}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.progress === 100 ? '#10b981' : '#6366f1'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          
+          <div className="flex-1 flex items-end justify-between gap-2 px-2 pb-2 border-b border-slate-100 min-h-[250px]">
+            {chartData.map((data, idx) => (
+              <div key={idx} className="flex-1 flex flex-col items-center group relative bar-container h-full justify-end">
+                {/* Custom Tooltip */}
+                <div className="hidden bar-tooltip absolute bottom-full mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded whitespace-nowrap z-10 pointer-events-none">
+                  {data.fullName}: {data.progress}%
+                </div>
+                
+                {/* Bar */}
+                <div 
+                  className={`w-full max-w-[40px] rounded-t-lg transition-all duration-1000 ease-out relative ${
+                    data.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500'
+                  }`}
+                  style={{ height: `${Math.max(data.progress, 5)}%` }}
+                >
+                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg" />
+                </div>
+                
+                {/* X-Axis Label */}
+                <span className="mt-3 text-[10px] font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">
+                  {data.label}
+                </span>
+              </div>
+            ))}
           </div>
+          <p className="mt-4 text-[10px] text-slate-400 italic">Dica: Passe o mouse nas barras para ver detalhes.</p>
         </div>
       </div>
     </div>
