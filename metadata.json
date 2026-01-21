@@ -1,0 +1,5 @@
+{
+  "name": "Centralizando Progress Tracker",
+  "description": "A progress tracking application for the 'Let's Learn AdonisJS 6' course, mapping lessons to the 'Centralizando' SaaS project milestones.",
+  "requestFramePermissions": []
+}
