@@ -1,5 +1,5 @@
 {
-  "name": "Centralizando Progress Tracker",
-  "description": "A progress tracking application for the 'Let's Learn AdonisJS 6' course, mapping lessons to the 'Centralizando' SaaS project milestones.",
+  "name": "Laravel Progress Tracker",
+  "description": "Aplicativo de acompanhamento de progresso para o curso '30 Days to Learn Laravel', mapeando as aulas para marcos de aprendizado.",
   "requestFramePermissions": []
 }

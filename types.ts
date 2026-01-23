@@ -3,6 +3,7 @@ export interface Lesson {
   id: number;
   title: string;
   module: string;
+  course: 'Laravel' | 'PostgreSQL';
 }
 
 export enum MilestoneStatus {
@@ -16,9 +17,16 @@ export interface Milestone {
   name: string;
   description: string;
   maxLessonId: number;
+  course: 'Laravel' | 'PostgreSQL';
   features: string[];
+}
+
+export interface StudyHistory {
+  date: string; // YYYY-MM-DD
+  lessonIds: number[];
 }
 
 export interface ProgressData {
   completedLessonIds: number[];
+  history: StudyHistory[];
 }
