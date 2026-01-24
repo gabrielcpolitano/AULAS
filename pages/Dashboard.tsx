@@ -1,240 +1,167 @@
-import React from 'react';
-import { Lesson, Milestone, MilestoneStatus, StudyHistory } from '../types';
-import { CHALLENGE_END_DATE, CHALLENGE_START_DATE } from '../constants';
-import { PlayCircle, Database, Layout, Clock, Calendar, Zap, Globe, AlertTriangle, CheckCircle } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { Task, StudyHistory } from '../types';
 import { Link } from 'react-router-dom';
+import { Skull, Zap, Globe, AlertTriangle, ShieldCheck, Clock, CheckCircle, TrendingUp, Trophy } from 'lucide-react';
 
 interface DashboardProps {
-  lessons: Lesson[];
-  completedIds: number[];
-  milestones: Milestone[];
-  studyHistory: StudyHistory[];
+  tasks: Task[];
+  history: StudyHistory[];
+  isCleared: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ lessons, completedIds, milestones, studyHistory }) => {
-  const nextLesson = lessons.find(l => !completedIds.includes(l.id));
-  
+const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared }) => {
   const getBrasiliaTime = () => {
     const now = new Date();
     const brTimeString = now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
     return new Date(brTimeString);
   };
 
-  const nowBR = getBrasiliaTime();
+  const [nowBR, setNowBR] = useState(getBrasiliaTime());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowBR(getBrasiliaTime()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const todayStr = nowBR.toISOString().split('T')[0];
-  
   const yesterdayBR = new Date(nowBR);
   yesterdayBR.setDate(yesterdayBR.getDate() - 1);
   const yesterdayStr = yesterdayBR.toISOString().split('T')[0];
 
-  // Regra dos 2 Dias Logic
-  const studiedToday = studyHistory.some(h => h.date === todayStr);
-  const studiedYesterday = studyHistory.some(h => h.date === yesterdayStr);
+  const studiedToday = history.some(h => h.date === todayStr);
+  const studiedYesterday = history.some(h => h.date === yesterdayStr);
+
+  const deadline = new Date('2026-02-23T23:59:59');
+  const diff = Math.max(0, deadline.getTime() - nowBR.getTime());
   
-  let habitStatus = {
-    label: "Protegido",
-    desc: "Você estudou hoje. Ciclo mantido!",
-    color: "bg-emerald-500",
-    icon: <CheckCircle className="text-white" size={20} />,
-    alert: false
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+  const pendingTasks = tasks.filter(t => !t.completed).length;
+  const completedTasks = tasks.filter(t => t.completed).length;
+  const progressPercent = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  let ruleStatus = {
+    label: "SHIELD ACTIVE",
+    desc: "Habit chain unbroken.",
+    color: "bg-emerald-600",
+    icon: <ShieldCheck size={24} />
   };
 
-  if (!studiedToday) {
+  if (!studiedToday && !isCleared) {
     if (studiedYesterday) {
-      habitStatus = {
-        label: "Atenção",
-        desc: "Você não estudou hoje. Não falhe amanhã!",
-        color: "bg-amber-500",
-        icon: <Clock className="text-white" size={20} />,
-        alert: false
+      ruleStatus = {
+        label: "SHIELD AT 50%",
+        desc: "Don't skip today. Survival at risk.",
+        color: "bg-amber-600",
+        icon: <Clock size={24} />
       };
     } else {
-      habitStatus = {
-        label: "ZONA DE RISCO",
-        desc: "Você não estudou ontem nem hoje. ESTUDE AGORA!",
-        color: "bg-rose-600 animate-pulse",
-        icon: <AlertTriangle className="text-white" size={20} />,
-        alert: true
+      ruleStatus = {
+        label: "SHIELD DOWN - CRITICAL",
+        desc: "2-Day Rule broken. You are failing.",
+        color: "bg-rose-700 animate-pulse",
+        icon: <AlertTriangle size={24} />
       };
     }
   }
 
-  // Define o final do desafio
-  const endDateBR = new Date('2026-02-23T23:59:59'); 
-  const startDateBR = new Date('2026-01-23T00:00:00');
-  
-  const timeDiff = endDateBR.getTime() - nowBR.getTime();
-  const daysRemaining = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
-  
-  const totalDuration = endDateBR.getTime() - startDateBR.getTime();
-  const elapsed = nowBR.getTime() - startDateBR.getTime();
-  const timeProgress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
-
-  const lessonsLeft = lessons.length - completedIds.length;
-  const requiredPace = daysRemaining > 0 ? (lessonsLeft / daysRemaining).toFixed(1) : lessonsLeft;
-
-  const getCourseProgress = (course: 'Laravel' | 'PostgreSQL') => {
-    const courseLessons = lessons.filter(l => l.course === course);
-    const done = courseLessons.filter(l => completedIds.includes(l.id)).length;
-    return {
-      percent: Math.round((done / courseLessons.length) * 100) || 0,
-      count: done,
-      total: courseLessons.length
+  if (isCleared) {
+    ruleStatus = {
+      label: "MISSION SUCCESS",
+      desc: "Survival protocol completed.",
+      color: "bg-indigo-600",
+      icon: <Trophy size={24} />
     };
-  };
-
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(nowBR);
-    d.setDate(d.getDate() - (6 - i));
-    const dStr = d.toISOString().split('T')[0];
-    return {
-      label: d.toLocaleDateString('pt-BR', { weekday: 'narrow' }),
-      date: dStr,
-      studied: studyHistory.some(h => h.date === dStr)
-    };
-  });
+  }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+      <header className="flex justify-between items-start border-b border-white/5 pb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Dashboard</h2>
-          <p className="text-slate-500">Regra: Nunca falhe dois dias seguidos.</p>
+          <h2 className="text-5xl font-black text-white tracking-tighter uppercase italic">The War Room</h2>
+          <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center gap-2">
+            <Globe size={12} className="text-rose-600" /> Reference: Brasília Time (UTC-3)
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
-            <Globe className="text-indigo-500" size={14} />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Brasília (UTC-3)</span>
-          </div>
+        <div className="text-right">
+            <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Current State</p>
+            <div className={`px-4 py-2 border rounded-xl ${isCleared ? 'bg-emerald-950/40 border-emerald-900/50' : 'bg-rose-950/40 border-rose-900/50'}`}>
+               <span className={`${isCleared ? 'text-emerald-500' : 'text-rose-600 animate-pulse'} font-black`}>
+                 {isCleared ? 'SURVIVED' : 'ALIVE'}
+               </span>
+            </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Regra dos 2 Dias Widget */}
-        <div className={`lg:col-span-2 rounded-[2.5rem] p-8 text-white flex flex-col md:flex-row gap-8 items-center justify-between transition-all duration-500 ${habitStatus.color}`}>
-          <div className="flex items-center gap-6">
-            <div className="bg-white/20 p-4 rounded-3xl backdrop-blur-sm">
-              {habitStatus.icon}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Regra dos 2 Dias</span>
-                {habitStatus.alert && <span className="bg-white text-rose-600 text-[9px] font-black px-2 py-0.5 rounded-full animate-bounce">URGENTE</span>}
-              </div>
-              <h3 className="text-3xl font-black mb-1">{habitStatus.label}</h3>
-              <p className="text-white/80 text-sm font-medium">{habitStatus.desc}</p>
-            </div>
-          </div>
+      {/* MASSIVE COUNTDOWN OR SUCCESS BANNER */}
+      {isCleared ? (
+        <section className="bg-emerald-600 border border-emerald-400/30 rounded-[3rem] p-16 text-center relative overflow-hidden group shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+          <div className="absolute inset-0 bg-white/10 opacity-20 group-hover:opacity-30 transition-opacity" />
+          <Trophy className="mx-auto text-white mb-6 animate-bounce" size={80} />
+          <h3 className="text-6xl font-black text-white uppercase italic tracking-tighter mb-4">SURVIVAL SECURED</h3>
+          <p className="text-emerald-100 font-bold uppercase tracking-widest text-sm">The project is finished. You escaped the deadline.</p>
+        </section>
+      ) : (
+        <section className="bg-slate-900 border border-white/5 rounded-[3rem] p-12 text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-rose-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <p className="text-[12px] font-black text-rose-600 uppercase tracking-[0.5em] mb-6">Absolute Deadline: February 23, 2026</p>
           
-          <div className="bg-black/10 rounded-3xl p-4 backdrop-blur-sm border border-white/10">
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-3 text-center opacity-60">Últimos 7 Dias</p>
-            <div className="flex gap-2">
-              {last7Days.map((day, i) => (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold border ${day.studied ? 'bg-white text-slate-900 border-white' : 'bg-transparent border-white/20 text-white/40'}`}>
-                    {day.studied ? '✓' : ''}
-                  </div>
-                  <span className="text-[9px] font-bold uppercase opacity-50">{day.label}</span>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+            {[
+              { v: days, l: 'Days' },
+              { v: hours, l: 'Hours' },
+              { v: mins, l: 'Mins' },
+              { v: secs, l: 'Secs' }
+            ].map((item, i) => (
+              <div key={i} className="bg-black/40 backdrop-blur-xl p-8 rounded-[2rem] border border-white/5">
+                <span className="text-6xl md:text-8xl font-black text-white tabular-nums tracking-tighter block">{String(item.v).padStart(2, '0')}</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-2 block">{item.l}</span>
+              </div>
+            ))}
           </div>
+
+          <div className="mt-10 flex flex-col items-center">
+              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">IF I DON'T FINISH, I GO TO DEAD.</h3>
+              <div className="h-1 w-64 bg-rose-600 mt-4 shadow-[0_0_15px_rgba(225,29,72,0.6)]" />
+          </div>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={`lg:col-span-2 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center gap-8 ${ruleStatus.color} shadow-2xl transition-colors duration-500`}>
+           <div className="bg-white/10 p-5 rounded-3xl backdrop-blur-md border border-white/20">
+              {ruleStatus.icon}
+           </div>
+           <div className="flex-1 text-center md:text-left">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-1">Survival Protocol: 2-Day Rule</p>
+              <h4 className="text-3xl font-black text-white italic">{ruleStatus.label}</h4>
+              <p className="text-white/80 font-bold mt-1 uppercase text-xs">{ruleStatus.desc}</p>
+           </div>
+           <div className="flex gap-2">
+              {[...Array(7)].map((_, i) => {
+                 const d = new Date(nowBR);
+                 d.setDate(d.getDate() - (6 - i));
+                 const dStr = d.toISOString().split('T')[0];
+                 const studied = history.some(h => h.date === dStr);
+                 return (
+                   <div key={i} className={`w-8 h-8 rounded-lg border-2 ${studied ? 'bg-white border-white' : 'border-white/20'}`} />
+                 );
+              })}
+           </div>
         </div>
 
-        {/* Mini Stats Quick View */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-center text-center group">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Meta de Estudo</p>
-          <div className="flex items-baseline justify-center gap-1">
-            <span className="text-5xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{requiredPace}</span>
-            <span className="text-sm font-bold text-slate-400">aulas/dia</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 font-medium">para concluir até 23/02</p>
-        </div>
-      </div>
-
-      {/* Main Countdown & Progress Card */}
-      <section className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 blur-[120px] -mr-40 -mt-40" />
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-400 px-4 py-1.5 rounded-full mb-6 border border-indigo-500/20">
-              <Zap size={14} className="fill-indigo-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Prazo: 30 Dias</span>
-            </div>
-            <h3 className="text-5xl font-black mb-4 tracking-tight leading-none">Faltam {daysRemaining} dias</h3>
-            <p className="text-slate-400 text-lg leading-relaxed max-w-sm">Você está no caminho para se tornar um desenvolvedor Fullstack robusto.</p>
-          </div>
-
-          <div className="flex flex-col justify-center space-y-8">
-            <div className="space-y-4">
-              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                <span>Início: 23 Jan</span>
-                <span className="text-indigo-400">{timeProgress}% do Tempo</span>
-                <span>Fim: 23 Fev</span>
-              </div>
-              <div className="h-4 w-full bg-white/5 rounded-full p-1 overflow-hidden shadow-inner">
-                <div 
-                  className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(99,102,241,0.4)]" 
-                  style={{ width: `${timeProgress}%` }}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
-                <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Aulas Restantes</p>
-                <p className="text-3xl font-black">{lessonsLeft}</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-3xl border border-white/10">
-                <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Total Concluído</p>
-                <p className="text-3xl font-black text-emerald-400">{completedIds.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Course Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-rose-100 p-4 rounded-2xl text-rose-600">
-              <Layout size={24} />
-            </div>
-            <div>
-              <h3 className="font-black text-xl text-slate-800">Laravel</h3>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Web Engine</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm font-bold">
-              <span className="text-slate-400">{getCourseProgress('Laravel').count} de {getCourseProgress('Laravel').total}</span>
-              <span className="text-rose-600">{getCourseProgress('Laravel').percent}%</span>
-            </div>
-            <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${getCourseProgress('Laravel').percent}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-indigo-100 p-4 rounded-2xl text-indigo-600">
-              <Database size={24} />
-            </div>
-            <div>
-              <h3 className="font-black text-xl text-slate-800">PostgreSQL</h3>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Data Core</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm font-bold">
-              <span className="text-slate-400">{getCourseProgress('PostgreSQL').count} de {getCourseProgress('PostgreSQL').total}</span>
-              <span className="text-indigo-600">{getCourseProgress('PostgreSQL').percent}%</span>
-            </div>
-            <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${getCourseProgress('PostgreSQL').percent}%` }} />
-            </div>
-          </div>
+        <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-center items-center text-center">
+           <TrendingUp className="text-rose-600 mb-4" size={32} />
+           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Overall Completion</p>
+           <span className="text-6xl font-black text-white">{progressPercent}%</span>
+           <div className="w-full h-2 bg-white/5 rounded-full mt-4 overflow-hidden">
+              <div className={`h-full transition-all duration-1000 shadow-[0_0_10px_rgba(225,29,72,0.5)] ${isCleared ? 'bg-emerald-500' : 'bg-rose-600'}`} style={{width: `${progressPercent}%`}} />
+           </div>
+           <p className="text-xs text-slate-500 font-bold mt-4 italic">{pendingTasks} targets remaining</p>
         </div>
       </div>
     </div>
