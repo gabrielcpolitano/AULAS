@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, StudyHistory } from '../types';
 import { Link } from 'react-router-dom';
-import { Skull, Zap, Globe, AlertTriangle, ShieldCheck, Clock, CheckCircle, TrendingUp, Trophy } from 'lucide-react';
+import { Skull, Zap, Globe, AlertTriangle, ShieldCheck, Clock, CheckCircle, TrendingUp, Trophy, Flame } from 'lucide-react';
 
 interface DashboardProps {
   tasks: Task[];
@@ -35,7 +35,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared }) => {
   const deadline = new Date('2026-02-23T23:59:59');
   const diff = Math.max(0, deadline.getTime() - nowBR.getTime());
   
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const secs = Math.floor((diff % (1000 * 60)) / 1000);
@@ -43,6 +43,11 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared }) => {
   const pendingTasks = tasks.filter(t => !t.completed).length;
   const completedTasks = tasks.filter(t => t.completed).length;
   const progressPercent = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  // Dynamic Calculation: Targets per day
+  // If daysRemaining is 0 but it's still today, we treat it as 1 to avoid division by zero
+  const effectiveDays = daysRemaining > 0 ? daysRemaining : 1;
+  const tasksPerDay = (pendingTasks / effectiveDays).toFixed(1);
 
   let ruleStatus = {
     label: "SHIELD ACTIVE",
@@ -112,7 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared }) => {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
             {[
-              { v: days, l: 'Days' },
+              { v: Math.max(0, daysRemaining - 1), l: 'Days' },
               { v: hours, l: 'Hours' },
               { v: mins, l: 'Mins' },
               { v: secs, l: 'Secs' }
@@ -129,6 +134,44 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared }) => {
               <div className="h-1 w-64 bg-rose-600 mt-4 shadow-[0_0_15px_rgba(225,29,72,0.6)]" />
           </div>
         </section>
+      )}
+
+      {/* DYNAMIC CALCULATIONS SECTION */}
+      {!isCleared && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 flex items-center gap-6">
+            <div className="p-4 bg-rose-600/20 rounded-2xl text-rose-600">
+              <Skull size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pending Targets</p>
+              <p className="text-3xl font-black text-white">{pendingTasks}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 flex items-center gap-6">
+            <div className="p-4 bg-amber-600/20 rounded-2xl text-amber-600">
+              <Clock size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Days Remaining</p>
+              <p className="text-3xl font-black text-white">{daysRemaining}</p>
+            </div>
+          </div>
+
+          <div className={`border rounded-[2rem] p-6 flex items-center gap-6 transition-all ${parseFloat(tasksPerDay) > 3 ? 'bg-rose-950/20 border-rose-600/50 shadow-[0_0_20px_rgba(225,29,72,0.1)]' : 'bg-white/5 border-white/10'}`}>
+            <div className={`p-4 rounded-2xl ${parseFloat(tasksPerDay) > 3 ? 'bg-rose-600 text-white animate-pulse' : 'bg-emerald-600/20 text-emerald-600'}`}>
+              <Flame size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Required Velocity</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-white">{tasksPerDay}</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">tasks / day</span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
