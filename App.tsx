@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Task, StudyHistory, ProgressData, DebriefAnswer } from './types';
 import Dashboard from './pages/Dashboard';
-import TasksPage from './pages/Tasks';
+import BenefitsPage from './pages/Benefits';
 import DebriefingPage from './pages/Debriefing';
-import { LayoutDashboard, CheckSquare, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Zap, Plus, Languages, Cpu } from 'lucide-react';
+import { LayoutDashboard, Zap, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Plus, Languages, Cpu } from 'lucide-react';
 import { KATA_GOAL, FLASHCARD_GOAL } from './constants';
 
 const INITIAL_DEBRIEF: DebriefAnswer[] = [
@@ -77,41 +77,6 @@ const App: React.FC = () => {
     });
   };
 
-  const addTask = (title: string, priority: 'high' | 'medium' | 'low') => {
-    const newTask: Task = {
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      completed: false,
-      priority,
-      createdAt: new Date().toISOString()
-    };
-    setTasks(prev => [...prev, newTask]);
-  };
-
-  const deleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-  };
-
-  const toggleTask = (id: string) => {
-    const today = getBrasiliaDateString();
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) {
-        const newStatus = !t.completed;
-        if (newStatus) {
-          setStudyHistory(hPrev => {
-            const existingDay = hPrev.find(day => day.date === today);
-            if (existingDay) {
-              return hPrev.map(day => day.date === today ? { ...day, taskIds: [...new Set([...day.taskIds, id])] } : day);
-            }
-            return [...hPrev, { date: today, taskIds: [id] }];
-          });
-        }
-        return { ...t, completed: newStatus };
-      }
-      return t;
-    }));
-  };
-
   const updateDebrief = (id: string, answer: string) => {
     setDebriefAnswers(prev => prev.map(a => a.id === id ? { ...a, answer } : a));
   };
@@ -151,7 +116,7 @@ const App: React.FC = () => {
     const location = useLocation();
     const links = [
       { to: '/', label: 'WAR ROOM', icon: LayoutDashboard },
-      { to: '/tasks', label: 'TARGETS', icon: CheckSquare },
+      { to: '/benefits', label: 'BENEFITS', icon: Zap },
       { to: '/debrief', label: 'FINAL', icon: FileText },
     ];
 
@@ -238,7 +203,7 @@ const App: React.FC = () => {
           <div className="p-4 md:p-12 max-w-6xl mx-auto">
             <Routes>
               <Route path="/" element={<Dashboard tasks={tasks} history={studyHistory} isCleared={isCleared} kataCount={kataCount} flashcardCount={flashcardCount} onIncrement={incrementCount} />} />
-              <Route path="/tasks" element={<TasksPage tasks={tasks} onToggle={toggleTask} onAdd={addTask} onDelete={deleteTask} />} />
+              <Route path="/benefits" element={<BenefitsPage />} />
               <Route path="/debrief" element={<DebriefingPage answers={debriefAnswers} onUpdate={updateDebrief} isCleared={isCleared} onClear={() => setIsCleared(true)} />} />
             </Routes>
           </div>
