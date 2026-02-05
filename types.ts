@@ -23,6 +23,8 @@ export interface ProgressData {
   history: StudyHistory[];
   debriefAnswers: DebriefAnswer[];
   isCleared: boolean;
+  kataCount: number;
+  flashcardCount: number; // New field for English progress
 }
 
 export interface Lesson {
