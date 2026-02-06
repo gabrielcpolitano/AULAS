@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { neon } from '@neondatabase/serverless';
 import { Task, StudyHistory, ProgressData, DebriefAnswer } from './types';
 import Dashboard from './pages/Dashboard';
 import BenefitsPage from './pages/Benefits';
 import DebriefingPage from './pages/Debriefing';
-import { LayoutDashboard, Zap, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Plus, Languages, Cpu } from 'lucide-react';
-import { KATA_GOAL, FLASHCARD_GOAL } from './constants';
+import { LayoutDashboard, Zap, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Plus, Languages, Cpu, Database, CloudSync, Wifi, WifiOff } from 'lucide-react';
+import { KATA_GOAL, FLASHCARD_GOAL, NEON_DATABASE_URL } from './constants';
+
+const sql = neon(NEON_DATABASE_URL);
 
 const INITIAL_DEBRIEF: DebriefAnswer[] = [
   { id: 'logic', question: "Como seu raciocínio lógico evoluiu após 1000 desafios?", answer: "" },
@@ -17,6 +20,8 @@ const INITIAL_DEBRIEF: DebriefAnswer[] = [
 
 const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dbStatus, setDbStatus] = useState<'connecting' | 'online' | 'error'>('connecting');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const getBrasiliaDateString = () => {
     const now = new Date();
@@ -24,61 +29,116 @@ const App: React.FC = () => {
     return brDate.toISOString().split('T')[0];
   };
 
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('survival_tasks');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [kataCount, setKataCount] = useState<number>(0);
+  const [flashcardCount, setFlashcardCount] = useState<number>(0);
+  const [studyHistory, setStudyHistory] = useState<StudyHistory[]>([]);
+  const [debriefAnswers, setDebriefAnswers] = useState<DebriefAnswer[]>(INITIAL_DEBRIEF);
+  const [isCleared, setIsCleared] = useState<boolean>(false);
 
-  const [kataCount, setKataCount] = useState<number>(() => {
-    const saved = localStorage.getItem('survival_kata_count');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
-  const [flashcardCount, setFlashcardCount] = useState<number>(() => {
-    const saved = localStorage.getItem('survival_flash_count');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
-  const [studyHistory, setStudyHistory] = useState<StudyHistory[]>(() => {
-    const saved = localStorage.getItem('survival_history');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [debriefAnswers, setDebriefAnswers] = useState<DebriefAnswer[]>(() => {
-    const saved = localStorage.getItem('survival_debrief');
-    return saved ? JSON.parse(saved) : INITIAL_DEBRIEF;
-  });
-
-  const [isCleared, setIsCleared] = useState<boolean>(() => {
-    return localStorage.getItem('survival_cleared') === 'true';
-  });
-
+  // Initialize and Fetch from Neon
   useEffect(() => {
-    localStorage.setItem('survival_tasks', JSON.stringify(tasks));
-    localStorage.setItem('survival_kata_count', kataCount.toString());
-    localStorage.setItem('survival_flash_count', flashcardCount.toString());
-    localStorage.setItem('survival_history', JSON.stringify(studyHistory));
-    localStorage.setItem('survival_debrief', JSON.stringify(debriefAnswers));
-    localStorage.setItem('survival_cleared', isCleared.toString());
-  }, [tasks, kataCount, flashcardCount, studyHistory, debriefAnswers, isCleared]);
+    const initDb = async () => {
+      try {
+        setDbStatus('connecting');
+        // Ensure table exists
+        await sql`
+          CREATE TABLE IF NOT EXISTS survival_state (
+            id INTEGER PRIMARY KEY,
+            data JSONB,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          )
+        `;
+
+        const result = await sql`SELECT data FROM survival_state WHERE id = 1`;
+        
+        if (result.length > 0) {
+          const cloudData = result[0].data as ProgressData;
+          setTasks(cloudData.tasks || []);
+          setKataCount(cloudData.kataCount || 0);
+          setFlashcardCount(cloudData.flashcardCount || 0);
+          setStudyHistory(cloudData.history || []);
+          setDebriefAnswers(cloudData.debriefAnswers || INITIAL_DEBRIEF);
+          setIsCleared(!!cloudData.isCleared);
+        } else {
+          // Initialize row 1 if empty
+          const initialData: ProgressData = { tasks: [], history: [], debriefAnswers: INITIAL_DEBRIEF, isCleared: false, kataCount: 0, flashcardCount: 0 };
+          await sql`INSERT INTO survival_state (id, data) VALUES (1, ${initialData})`;
+        }
+        setDbStatus('online');
+      } catch (err) {
+        console.error("DB Connection Error:", err);
+        setDbStatus('error');
+        // Fallback to local storage if DB fails
+        const savedTasks = localStorage.getItem('survival_tasks');
+        if (savedTasks) setTasks(JSON.parse(savedTasks));
+      }
+    };
+
+    initDb();
+  }, []);
+
+  // Sync to Neon helper
+  const syncToCloud = async (newData: Partial<ProgressData>) => {
+    if (dbStatus !== 'online') return;
+    setIsSyncing(true);
+    try {
+      // Get current data to merge
+      const result = await sql`SELECT data FROM survival_state WHERE id = 1`;
+      const currentData = result[0].data;
+      const mergedData = { ...currentData, ...newData };
+      
+      await sql`
+        UPDATE survival_state 
+        SET data = ${mergedData}, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = 1
+      `;
+    } catch (err) {
+      console.error("Sync Error:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const incrementCount = (type: 'kata' | 'flash') => {
-    if (type === 'kata') setKataCount(prev => prev + 1);
-    else setFlashcardCount(prev => prev + 1);
+    const newKata = type === 'kata' ? kataCount + 1 : kataCount;
+    const newFlash = type === 'flash' ? flashcardCount + 1 : flashcardCount;
+    
+    if (type === 'kata') setKataCount(newKata);
+    else setFlashcardCount(newFlash);
 
     const today = getBrasiliaDateString();
+    let newHistory: StudyHistory[] = [];
+    
     setStudyHistory(hPrev => {
       const existingDay = hPrev.find(day => day.date === today);
       const unitId = type === 'kata' ? 'kata-unit' : 'flash-unit';
       if (existingDay) {
-        return hPrev.map(day => day.date === today ? { ...day, taskIds: [...day.taskIds, unitId] } : day);
+        newHistory = hPrev.map(day => day.date === today ? { ...day, taskIds: [...day.taskIds, unitId] } : day);
+      } else {
+        newHistory = [...hPrev, { date: today, taskIds: [unitId] }];
       }
-      return [...hPrev, { date: today, taskIds: [unitId] }];
+      
+      // Push to cloud
+      syncToCloud({ 
+        kataCount: newKata, 
+        flashcardCount: newFlash, 
+        history: newHistory 
+      });
+      
+      return newHistory;
     });
   };
 
   const updateDebrief = (id: string, answer: string) => {
-    setDebriefAnswers(prev => prev.map(a => a.id === id ? { ...a, answer } : a));
+    const updated = debriefAnswers.map(a => a.id === id ? { ...a, answer } : a);
+    setDebriefAnswers(updated);
+    syncToCloud({ debriefAnswers: updated });
+  };
+
+  const setGlobalCleared = (status: boolean) => {
+    setIsCleared(status);
+    syncToCloud({ isCleared: status });
   };
 
   const handleExport = () => {
@@ -91,25 +151,6 @@ const App: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target?.result as string);
-        setTasks(json.tasks || []);
-        setKataCount(json.kataCount || 0);
-        setFlashcardCount(json.flashcardCount || 0);
-        setStudyHistory(json.history || []);
-        setDebriefAnswers(json.debriefAnswers || INITIAL_DEBRIEF);
-        setIsCleared(!!json.isCleared);
-        alert('INTEL LOADED SUCCESSFULLY.');
-      } catch (err) { alert('INVALID DATA'); }
-    };
-    reader.readAsText(file);
   };
 
   const Sidebar = () => {
@@ -154,7 +195,7 @@ const App: React.FC = () => {
           ))}
 
           <div className="mt-8 space-y-4 px-2">
-              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl relative group overflow-hidden">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1"><Cpu size={10} /> Logic</span>
                   <span className="text-[9px] font-black text-white">{kataCount}/1000</span>
@@ -167,7 +208,7 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl relative overflow-hidden">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1"><Languages size={10} /> English</span>
                   <span className="text-[9px] font-black text-white">{flashcardCount}/1000</span>
@@ -181,14 +222,17 @@ const App: React.FC = () => {
               </div>
           </div>
 
-          <div className="pt-8 space-y-2 border-t border-white/5 mt-4">
-             <button onClick={handleExport} className="w-full flex items-center gap-4 px-5 py-3 rounded-xl text-[10px] font-black text-slate-500 hover:text-emerald-400 uppercase tracking-widest transition-all">
-               <Download size={16} /> Export Intel
-             </button>
-             <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-4 px-5 py-3 rounded-xl text-[10px] font-black text-slate-500 hover:text-amber-400 uppercase tracking-widest transition-all">
-               <Upload size={16} /> Import Intel
-             </button>
-             <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
+          <div className="mt-8 border-t border-white/5 pt-6 px-4">
+             <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${dbStatus === 'online' ? 'bg-emerald-400 neon-status-active' : dbStatus === 'connecting' ? 'bg-amber-400 animate-pulse' : 'bg-rose-600'}`} />
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Neon DB Live</span>
+                </div>
+                {isSyncing && <CloudSync className="text-rose-600 animate-spin" size={12} />}
+             </div>
+             <div className="bg-black/40 p-3 rounded-xl border border-white/5">
+                <p className="text-[7px] text-slate-600 font-mono uppercase truncate">ID: {NEON_DATABASE_URL.split('@')[1].split('.')[0]}</p>
+             </div>
           </div>
         </nav>
       </aside>
@@ -204,7 +248,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<Dashboard tasks={tasks} history={studyHistory} isCleared={isCleared} kataCount={kataCount} flashcardCount={flashcardCount} onIncrement={incrementCount} />} />
               <Route path="/benefits" element={<BenefitsPage />} />
-              <Route path="/debrief" element={<DebriefingPage answers={debriefAnswers} onUpdate={updateDebrief} isCleared={isCleared} onClear={() => setIsCleared(true)} />} />
+              <Route path="/debrief" element={<DebriefingPage answers={debriefAnswers} onUpdate={updateDebrief} isCleared={isCleared} onClear={() => setGlobalCleared(true)} />} />
             </Routes>
           </div>
         </main>

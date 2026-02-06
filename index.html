@@ -22,6 +22,11 @@
           50% { opacity: 0.5; }
         }
         .animate-pulse-red { animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes neon-glow {
+          0%, 100% { box-shadow: 0 0 5px rgba(52, 211, 153, 0.2); }
+          50% { box-shadow: 0 0 15px rgba(52, 211, 153, 0.6); }
+        }
+        .neon-status-active { animation: neon-glow 2s infinite; }
     </style>
 <script type="importmap">
 {
@@ -30,7 +35,8 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "@neondatabase/serverless": "https://esm.sh/@neondatabase/serverless@^0.10.4"
   }
 }
 </script>
