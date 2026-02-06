@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { neon } from '@neondatabase/serverless';
@@ -173,7 +172,7 @@ const App: React.FC = () => {
           <div className="mt-2 flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isCleared ? 'bg-emerald-500' : 'bg-rose-600 animate-pulse'}`} />
             <span className={`text-[10px] font-bold uppercase tracking-widest ${isCleared ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {isCleared ? 'SURVIVOR' : 'DEADLINE: 01 APR'}
+              {isCleared ? 'SURVIVOR' : 'DEADLINE: 31 DEC'}
             </span>
           </div>
         </div>

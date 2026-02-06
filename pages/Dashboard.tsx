@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Task, StudyHistory } from '../types';
 import { Link } from 'react-router-dom';
@@ -94,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared, kataCo
         <div>
           <h2 className="text-5xl font-black text-white tracking-tighter uppercase italic">The War Room</h2>
           <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center gap-2">
-            <Globe size={12} className="text-rose-600" /> MISSION: 1000x2 (Logic & English)
+            <Globe size={12} className="text-rose-600" /> MISSION: 1000x2 (Logic & Languages)
           </p>
         </div>
         <div className="text-right">
@@ -135,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared, kataCo
              </div>
              <div className="relative z-10">
                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-1">Objective B: Language Mastery</p>
-                <h3 className="text-4xl font-black text-white italic mb-6">1000 ENGLISH</h3>
+                <h3 className="text-4xl font-black text-white italic mb-6">1000 ENGLISH & SPANISH</h3>
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-6xl font-black text-white tabular-nums">{flashcardCount}</span>
                   <span className="text-xl font-bold text-slate-600">/ 1000</span>
@@ -157,7 +156,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared, kataCo
             <Clock className="text-amber-500 mx-auto mb-4" size={32} />
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Execution Window</p>
             <p className="text-4xl font-black text-white">{daysRemaining} <span className="text-xs uppercase text-slate-500">Days</span></p>
-            <p className="text-[9px] text-rose-500 font-bold mt-2 uppercase">Deadline: April 1, 2026</p>
+            <p className="text-[9px] text-rose-500 font-bold mt-2 uppercase">Deadline: December 31, 2026</p>
           </div>
 
           <div className={`border rounded-[2rem] p-8 flex flex-col justify-center transition-all ${parseFloat(katasPerDay) > 12 ? 'bg-rose-950/20 border-rose-600/50' : 'bg-white/5 border-white/10'}`}>
@@ -171,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, history, isCleared, kataCo
 
           <div className={`border rounded-[2rem] p-8 flex flex-col justify-center transition-all ${parseFloat(flashPerDay) > 12 ? 'bg-indigo-950/20 border-indigo-600/50' : 'bg-white/5 border-white/10'}`}>
             <Zap className={`${parseFloat(flashPerDay) > 12 ? 'text-indigo-500 animate-pulse' : 'text-emerald-500'} mb-4`} size={32} />
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">English Velocity</p>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Language Velocity</p>
             <div className="flex items-baseline gap-2">
               <p className="text-5xl font-black text-white">{flashPerDay}</p>
               <span className="text-xs font-black text-slate-400 uppercase">Cards / day</span>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Cpu, Languages, DollarSign, Globe, Zap, ShieldCheck, Target, Brain, Award } from 'lucide-react';
 
@@ -73,13 +72,13 @@ const BenefitsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* ENGLISH SECTION */}
+        {/* LANGUAGES SECTION */}
         <section className="space-y-8">
           <div className="flex items-center gap-4">
              <div className="p-3 bg-emerald-600/10 rounded-2xl border border-emerald-600/20">
                 <Languages className="text-emerald-500" size={24} />
              </div>
-             <h3 className="text-2xl font-black text-white uppercase italic">1000 Cards: The Global Citizen</h3>
+             <h3 className="text-2xl font-black text-white uppercase italic">1000 Cards: Multilingual Master</h3>
           </div>
 
           <div className="space-y-4">
