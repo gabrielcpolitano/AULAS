@@ -5,7 +5,7 @@ import { Task, StudyHistory, ProgressData, DebriefAnswer } from './types';
 import Dashboard from './pages/Dashboard';
 import BenefitsPage from './pages/Benefits';
 import DebriefingPage from './pages/Debriefing';
-import { LayoutDashboard, Zap, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Plus, Languages, Cpu, Database, CloudSync, Wifi, WifiOff } from 'lucide-react';
+import { LayoutDashboard, Zap, ShieldAlert, Download, Upload, Skull, FileText, ShieldCheck, Plus, Languages, Cpu, Database, CloudSync, Wifi, WifiOff, Box, Code2 } from 'lucide-react';
 import { KATA_GOAL, FLASHCARD_GOAL, NEON_DATABASE_URL } from './constants';
 
 const sql = neon(NEON_DATABASE_URL);
@@ -18,7 +18,6 @@ const INITIAL_DEBRIEF: DebriefAnswer[] = [
 ];
 
 const App: React.FC = () => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [dbStatus, setDbStatus] = useState<'connecting' | 'online' | 'error'>('connecting');
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -31,16 +30,16 @@ const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [kataCount, setKataCount] = useState<number>(0);
   const [flashcardCount, setFlashcardCount] = useState<number>(0);
+  const [fullCycleCount, setFullCycleCount] = useState<number>(0);
+  const [goCount, setGoCount] = useState<number>(0);
   const [studyHistory, setStudyHistory] = useState<StudyHistory[]>([]);
   const [debriefAnswers, setDebriefAnswers] = useState<DebriefAnswer[]>(INITIAL_DEBRIEF);
   const [isCleared, setIsCleared] = useState<boolean>(false);
 
-  // Initialize and Fetch from Neon
   useEffect(() => {
     const initDb = async () => {
       try {
         setDbStatus('connecting');
-        // Ensure table exists
         await sql`
           CREATE TABLE IF NOT EXISTS survival_state (
             id INTEGER PRIMARY KEY,
@@ -56,33 +55,38 @@ const App: React.FC = () => {
           setTasks(cloudData.tasks || []);
           setKataCount(cloudData.kataCount || 0);
           setFlashcardCount(cloudData.flashcardCount || 0);
+          setFullCycleCount(cloudData.fullCycleCount || 0);
+          setGoCount(cloudData.goCount || 0);
           setStudyHistory(cloudData.history || []);
           setDebriefAnswers(cloudData.debriefAnswers || INITIAL_DEBRIEF);
           setIsCleared(!!cloudData.isCleared);
         } else {
-          // Initialize row 1 if empty
-          const initialData: ProgressData = { tasks: [], history: [], debriefAnswers: INITIAL_DEBRIEF, isCleared: false, kataCount: 0, flashcardCount: 0 };
+          const initialData: ProgressData = { 
+            tasks: [], 
+            history: [], 
+            debriefAnswers: INITIAL_DEBRIEF, 
+            isCleared: false, 
+            kataCount: 0, 
+            flashcardCount: 0,
+            fullCycleCount: 0,
+            goCount: 0
+          };
           await sql`INSERT INTO survival_state (id, data) VALUES (1, ${initialData})`;
         }
         setDbStatus('online');
       } catch (err) {
         console.error("DB Connection Error:", err);
         setDbStatus('error');
-        // Fallback to local storage if DB fails
-        const savedTasks = localStorage.getItem('survival_tasks');
-        if (savedTasks) setTasks(JSON.parse(savedTasks));
       }
     };
 
     initDb();
   }, []);
 
-  // Sync to Neon helper
   const syncToCloud = async (newData: Partial<ProgressData>) => {
     if (dbStatus !== 'online') return;
     setIsSyncing(true);
     try {
-      // Get current data to merge
       const result = await sql`SELECT data FROM survival_state WHERE id = 1`;
       const currentData = result[0].data;
       const mergedData = { ...currentData, ...newData };
@@ -99,29 +103,34 @@ const App: React.FC = () => {
     }
   };
 
-  const incrementCount = (type: 'kata' | 'flash') => {
-    const newKata = type === 'kata' ? kataCount + 1 : kataCount;
-    const newFlash = type === 'flash' ? flashcardCount + 1 : flashcardCount;
-    
-    if (type === 'kata') setKataCount(newKata);
-    else setFlashcardCount(newFlash);
+  const incrementCount = (type: 'kata' | 'flash' | 'fc' | 'go') => {
+    let newKata = kataCount;
+    let newFlash = flashcardCount;
+    let newFC = fullCycleCount;
+    let newGo = goCount;
+
+    if (type === 'kata') { newKata++; setKataCount(newKata); }
+    if (type === 'flash') { newFlash++; setFlashcardCount(newFlash); }
+    if (type === 'fc') { newFC++; setFullCycleCount(newFC); }
+    if (type === 'go') { newGo++; setGoCount(newGo); }
 
     const today = getBrasiliaDateString();
     let newHistory: StudyHistory[] = [];
     
     setStudyHistory(hPrev => {
       const existingDay = hPrev.find(day => day.date === today);
-      const unitId = type === 'kata' ? 'kata-unit' : 'flash-unit';
+      const unitId = `${type}-unit`;
       if (existingDay) {
         newHistory = hPrev.map(day => day.date === today ? { ...day, taskIds: [...day.taskIds, unitId] } : day);
       } else {
         newHistory = [...hPrev, { date: today, taskIds: [unitId] }];
       }
       
-      // Push to cloud
       syncToCloud({ 
         kataCount: newKata, 
         flashcardCount: newFlash, 
+        fullCycleCount: newFC,
+        goCount: newGo,
         history: newHistory 
       });
       
@@ -140,18 +149,6 @@ const App: React.FC = () => {
     syncToCloud({ isCleared: status });
   };
 
-  const handleExport = () => {
-    const data: ProgressData = { tasks, history: studyHistory, debriefAnswers, isCleared, kataCount, flashcardCount };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `survival-1000x2-intel-${getBrasiliaDateString()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const Sidebar = () => {
     const location = useLocation();
     const links = [
@@ -159,9 +156,6 @@ const App: React.FC = () => {
       { to: '/benefits', label: 'BENEFITS', icon: Zap },
       { to: '/debrief', label: 'FINAL', icon: FileText },
     ];
-
-    const kataProgress = Math.min(100, Math.round((kataCount / KATA_GOAL) * 100));
-    const flashProgress = Math.min(100, Math.round((flashcardCount / FLASHCARD_GOAL) * 100));
 
     return (
       <aside className="w-64 bg-slate-950 border-r border-rose-900/30 h-screen sticky top-0 flex flex-col hidden md:flex">
@@ -193,30 +187,20 @@ const App: React.FC = () => {
             </Link>
           ))}
 
-          <div className="mt-8 space-y-4 px-2">
-              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl relative group overflow-hidden">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1"><Cpu size={10} /> Logic</span>
-                  <span className="text-[9px] font-black text-white">{kataCount}/1000</span>
-                </div>
-                <div className="h-1 w-full bg-black/40 rounded-full overflow-hidden">
-                  <div className="h-full bg-rose-600 transition-all duration-1000" style={{width: `${kataProgress}%`}} />
-                </div>
-                <button onClick={() => incrementCount('kata')} className="w-full mt-3 py-2 bg-rose-600 text-white text-[9px] font-black uppercase rounded-lg hover:bg-rose-500 active:scale-95 transition-all">
-                  +1 Kata
+          <div className="mt-8 space-y-3 px-2">
+              <div className="flex flex-col gap-2">
+                <button onClick={() => incrementCount('kata')} className="w-full py-2.5 bg-rose-600/10 border border-rose-600/30 text-rose-500 text-[10px] font-black uppercase rounded-xl hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                  <Cpu size={14} /> +1 Kata ({kataCount})
                 </button>
-              </div>
-
-              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl relative overflow-hidden">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1"><Languages size={10} /> English</span>
-                  <span className="text-[9px] font-black text-white">{flashcardCount}/1000</span>
-                </div>
-                <div className="h-1 w-full bg-black/40 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{width: `${flashProgress}%`}} />
-                </div>
-                <button onClick={() => incrementCount('flash')} className="w-full mt-3 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase rounded-lg hover:bg-indigo-500 active:scale-95 transition-all">
-                  +1 Flashcard
+                <button onClick={() => incrementCount('flash')} className="w-full py-2.5 bg-indigo-600/10 border border-indigo-600/30 text-indigo-500 text-[10px] font-black uppercase rounded-xl hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                  <Languages size={14} /> +1 Lang ({flashcardCount})
+                </button>
+                <div className="h-px bg-white/5 my-2" />
+                <button onClick={() => incrementCount('fc')} className="w-full py-2.5 bg-purple-600/10 border border-purple-600/30 text-purple-500 text-[10px] font-black uppercase rounded-xl hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                  <Box size={14} /> +20m Full Cycle ({fullCycleCount})
+                </button>
+                <button onClick={() => incrementCount('go')} className="w-full py-2.5 bg-cyan-600/10 border border-cyan-600/30 text-cyan-500 text-[10px] font-black uppercase rounded-xl hover:bg-cyan-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                  <Code2 size={14} /> +20m Go Lang ({goCount})
                 </button>
               </div>
           </div>
@@ -228,9 +212,6 @@ const App: React.FC = () => {
                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Neon DB Live</span>
                 </div>
                 {isSyncing && <CloudSync className="text-rose-600 animate-spin" size={12} />}
-             </div>
-             <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                <p className="text-[7px] text-slate-600 font-mono uppercase truncate">ID: {NEON_DATABASE_URL.split('@')[1].split('.')[0]}</p>
              </div>
           </div>
         </nav>
@@ -245,7 +226,7 @@ const App: React.FC = () => {
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-12 max-w-6xl mx-auto">
             <Routes>
-              <Route path="/" element={<Dashboard tasks={tasks} history={studyHistory} isCleared={isCleared} kataCount={kataCount} flashcardCount={flashcardCount} onIncrement={incrementCount} />} />
+              <Route path="/" element={<Dashboard history={studyHistory} isCleared={isCleared} kataCount={kataCount} flashcardCount={flashcardCount} fullCycleCount={fullCycleCount} goCount={goCount} onIncrement={incrementCount} />} />
               <Route path="/benefits" element={<BenefitsPage />} />
               <Route path="/debrief" element={<DebriefingPage answers={debriefAnswers} onUpdate={updateDebrief} isCleared={isCleared} onClear={() => setGlobalCleared(true)} />} />
             </Routes>

@@ -1,4 +1,3 @@
-
 export interface Task {
   id: string;
   title: string;
@@ -24,7 +23,9 @@ export interface ProgressData {
   debriefAnswers: DebriefAnswer[];
   isCleared: boolean;
   kataCount: number;
-  flashcardCount: number; // New field for English progress
+  flashcardCount: number;
+  fullCycleCount: number;
+  goCount: number;
 }
 
 export interface Lesson {
