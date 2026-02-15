@@ -22,10 +22,9 @@ export interface ProgressData {
   history: StudyHistory[];
   debriefAnswers: DebriefAnswer[];
   isCleared: boolean;
-  kataCount: number;
-  flashcardCount: number;
-  fullCycleCount: number;
+  bibleCount: number;
   goCount: number;
+  fullCycleCount: number;
 }
 
 export interface Lesson {
