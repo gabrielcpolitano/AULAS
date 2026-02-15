@@ -96,7 +96,9 @@ const Dashboard: React.FC<DashboardProps> = ({ history, isCleared, bibleCount, g
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/5 pb-8 gap-4">
         <div>
-          <h2 className="text-6xl font-black text-white tracking-tighter uppercase italic">The War Room</h2>
+          <h2 className="text-6xl font-black text-rose-600 tracking-tighter uppercase italic">
+            MANAGER LIFE <span className="text-white">2026</span>
+          </h2>
           <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center gap-2">
             <Globe size={12} className="text-rose-600" /> TRIPLE THREAT: BIBLE | GO | FULL CYCLE
           </p>

@@ -144,7 +144,7 @@ const App: React.FC = () => {
   const Sidebar = () => {
     const location = useLocation();
     const links = [
-      { to: '/', label: 'WAR ROOM', icon: LayoutDashboard },
+      { to: '/', label: 'MANAGER LIFE', icon: LayoutDashboard },
       { to: '/benefits', label: 'THE PILLARS', icon: Zap },
       { to: '/debrief', label: 'DEBRIEFING', icon: FileText },
     ];
