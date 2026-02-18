@@ -29,7 +29,7 @@ const Milestones: React.FC<MilestonesProps> = ({ lessons, completedIds, mileston
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header>
         <h2 className="text-3xl font-bold text-slate-900">Marcos do Desafio</h2>
-        <p className="text-slate-500">Seu roadmap completo de 23/01 a 23/02.</p>
+        <p className="text-slate-500">Seu roadmap completo de 23/01 a 30/06.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">

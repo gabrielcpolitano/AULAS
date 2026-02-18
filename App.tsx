@@ -5,16 +5,16 @@ import { StudyHistory, ProgressData, DebriefAnswer } from './types';
 import Dashboard from './pages/Dashboard';
 import BenefitsPage from './pages/Benefits';
 import DebriefingPage from './pages/Debriefing';
-import { LayoutDashboard, Zap, FileText, CloudSync, Box, Code2, Book } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, ClipboardList, CloudSync, Box, Languages, BookOpen, User, Book } from 'lucide-react';
 import { NEON_DATABASE_URL } from './constants';
 
 const sql = neon(NEON_DATABASE_URL);
 
 const INITIAL_DEBRIEF: DebriefAnswer[] = [
-  { id: 'bible', question: "Como o estudo diário da Bíblia em Inglês fortaleceu sua mente?", answer: "" },
-  { id: 'go', question: "Quais os principais sistemas que você agora é capaz de construir com Go?", answer: "" },
-  { id: 'fullcycle', question: "Como a arquitetura de software mudou sua percepção de desenvolvimento?", answer: "" },
-  { id: 'future', question: "Onde você estará após dominar esses três pilares?", answer: "" },
+  { id: 'bible', question: "Como o estudo diário da Bíblia em Inglês fortaleceu sua formação ética e mental?", answer: "" },
+  { id: 'go', question: "Como a prática do Duolingo impactou sua fluência técnica para o mercado global?", answer: "" },
+  { id: 'fullcycle', question: "Como a especialização Full Cycle alterou sua visão de arquitetura de sistemas?", answer: "" },
+  { id: 'future', question: "Qual o seu plano de carreira após concluir este ciclo acadêmico?", answer: "" },
 ];
 
 const App: React.FC = () => {
@@ -22,9 +22,9 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const getBrasiliaDateString = () => {
-    const now = new Date();
-    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    return brDate.toISOString().split('T')[0];
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Sao_Paulo',
+    }).format(new Date());
   };
 
   const [bibleCount, setBibleCount] = useState<number>(0);
@@ -144,76 +144,83 @@ const App: React.FC = () => {
   const Sidebar = () => {
     const location = useLocation();
     const links = [
-      { to: '/', label: 'MANAGER LIFE', icon: LayoutDashboard },
-      { to: '/benefits', label: 'THE PILLARS', icon: Zap },
-      { to: '/debrief', label: 'DEBRIEFING', icon: FileText },
+      { to: '/', label: 'PAINEL ACADÊMICO', icon: LayoutDashboard },
+      { to: '/benefits', label: 'MATRIZ CURRICULAR', icon: GraduationCap },
+      { to: '/debrief', label: 'AVALIAÇÃO FINAL', icon: ClipboardList },
     ];
 
     return (
-      <aside className="w-64 bg-slate-950 border-r border-rose-900/30 h-screen sticky top-0 flex flex-col hidden md:flex">
-        <div className="p-8 pb-4">
-          <h1 className="text-2xl font-black text-rose-600 tracking-tighter italic">
-            TRIPLE<span className="text-slate-100">THREAT</span>
-          </h1>
-          <div className="mt-2 flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isCleared ? 'bg-emerald-500' : 'bg-rose-600 animate-pulse'}`} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${isCleared ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {isCleared ? 'LEGEND' : 'ACTIVE SURVIVAL'}
-            </span>
+      <aside className="w-72 bg-black border-r border-white/5 h-screen sticky top-0 flex flex-col hidden md:flex">
+        <div className="p-10 pb-6">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-[#ed1c24] flex items-center justify-center rounded-lg font-black text-white text-xl">F</div>
+            <h1 className="text-3xl font-black text-white tracking-tighter italic">FIAP</h1>
+          </div>
+          
+          <div className="bg-[#111] p-4 rounded-2xl border border-white/5 mb-6">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 rounded-full bg-[#ed1c24]/20 flex items-center justify-center text-[#ed1c24]">
+                <User size={16} />
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Estudante</span>
+            </div>
+            <p className="text-sm font-extrabold text-white truncate">Gabriel C. Politano</p>
+            <p className="text-[9px] font-bold text-[#ed1c24] mt-1">RM 2026-SURVIVAL</p>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto pt-4">
+        <nav className="flex-1 px-6 space-y-2 overflow-y-auto">
+          <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4">Portal do Aluno</p>
           {links.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
-              className={`flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-black transition-all ${
+              className={`flex items-center gap-4 px-4 py-4 rounded-xl text-xs font-black transition-all ${
                 location.pathname === to 
-                  ? 'bg-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)]' 
-                  : 'text-slate-500 hover:text-slate-100 hover:bg-slate-900'
+                  ? 'bg-[#ed1c24] text-white shadow-[0_0_20px_rgba(237,28,36,0.2)]' 
+                  : 'text-slate-500 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Icon size={20} />
+              <Icon size={18} />
               {label}
             </Link>
           ))}
 
-          <div className="mt-8 space-y-3 px-2">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-4 mb-2">Manual Entry</p>
-              <div className="flex flex-col gap-2">
-                <button onClick={() => incrementCount('bible')} className="w-full py-2.5 bg-emerald-600/10 border border-emerald-600/30 text-emerald-500 text-[10px] font-black uppercase rounded-xl hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2">
-                  <Book size={14} /> English Bible
+          <div className="mt-10 space-y-4">
+              <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">Registrar Atividades</p>
+              <div className="space-y-2">
+                <button onClick={() => incrementCount('bible')} className="w-full py-3 bg-white/5 border border-white/5 text-slate-300 text-[10px] font-black uppercase rounded-xl hover:border-[#ed1c24]/50 hover:text-white transition-all flex items-center gap-3 px-4">
+                  <Book size={14} className="text-[#ed1c24]" /> English Bible
                 </button>
-                <button onClick={() => incrementCount('go')} className="w-full py-2.5 bg-cyan-600/10 border border-cyan-600/30 text-cyan-500 text-[10px] font-black uppercase rounded-xl hover:bg-cyan-600 hover:text-white transition-all flex items-center justify-center gap-2">
-                  <Code2 size={14} /> Go Course
+                <button onClick={() => incrementCount('go')} className="w-full py-3 bg-white/5 border border-white/5 text-slate-300 text-[10px] font-black uppercase rounded-xl hover:border-[#ed1c24]/50 hover:text-white transition-all flex items-center gap-3 px-4">
+                  <Languages size={14} className="text-[#ed1c24]" /> Duolingo Sprint
                 </button>
-                <button onClick={() => incrementCount('fc')} className="w-full py-2.5 bg-purple-600/10 border border-purple-600/30 text-purple-500 text-[10px] font-black uppercase rounded-xl hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center gap-2">
-                  <Box size={14} /> Full Cycle
+                <button onClick={() => incrementCount('fc')} className="w-full py-3 bg-white/5 border border-white/5 text-slate-300 text-[10px] font-black uppercase rounded-xl hover:border-[#ed1c24]/50 hover:text-white transition-all flex items-center gap-3 px-4">
+                  <Box size={14} className="text-[#ed1c24]" /> Full Cycle Dev
                 </button>
               </div>
           </div>
-
-          <div className="mt-auto pb-8 pt-6 px-4">
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${dbStatus === 'online' ? 'bg-emerald-400 neon-status-active' : 'bg-rose-600'}`} />
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Neon DB</span>
-                </div>
-                {isSyncing && <CloudSync className="text-rose-600 animate-spin" size={12} />}
-             </div>
-          </div>
         </nav>
+
+        <div className="p-8 border-t border-white/5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Academic Sync</span>
+            {isSyncing && <CloudSync className="text-[#ed1c24] animate-spin" size={12} />}
+          </div>
+          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+            <div className={`h-full bg-[#ed1c24] transition-all duration-500 ${dbStatus === 'online' ? 'w-full' : 'w-1/3 animate-pulse'}`} />
+          </div>
+        </div>
       </aside>
     );
   };
 
   return (
     <MemoryRouter>
-      <div className="flex min-h-screen bg-slate-950 text-slate-200">
+      <div className="flex min-h-screen bg-[#0a0a0a] text-slate-200">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-12 max-w-6xl mx-auto">
+          <div className="p-6 md:p-16 max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<Dashboard history={studyHistory} isCleared={isCleared} bibleCount={bibleCount} goCount={goCount} fullCycleCount={fullCycleCount} onIncrement={incrementCount} />} />
               <Route path="/benefits" element={<BenefitsPage />} />

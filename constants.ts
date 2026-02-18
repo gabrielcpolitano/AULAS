@@ -1,5 +1,5 @@
 export const CHALLENGE_START_DATE = '2026-01-23';
-export const CHALLENGE_END_DATE = '2026-12-31'; 
+export const CHALLENGE_END_DATE = '2026-06-30'; 
 export const SURVIVAL_MODE = true;
 
 // 1000 Goal for each pillar of the triple threat
