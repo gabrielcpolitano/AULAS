@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StudyHistory } from '../types';
-import { Globe, ShieldCheck, Clock, Plus, Box, Book, Trophy, Calendar, Languages, User, Award, CheckCircle, GraduationCap } from 'lucide-react';
+import { Globe, ShieldCheck, Clock, Plus, Box, Book, Trophy, Calendar, Languages, User, Award, CheckCircle, GraduationCap, CreditCard, ReceiptText, TrendingUp } from 'lucide-react';
 import { CHALLENGE_START_DATE, CHALLENGE_END_DATE } from '../constants';
 
 interface DashboardProps {
@@ -100,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({ history, isCleared, bibleCount, g
   ];
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-1000">
+    <div className="space-y-12 animate-in fade-in duration-1000 pb-20">
       {/* UNIVERSITY HEADER */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
         <div className="space-y-2">
@@ -129,22 +129,50 @@ const Dashboard: React.FC<DashboardProps> = ({ history, isCleared, bibleCount, g
         </div>
       </header>
 
-      {/* STUDENT PROGRESS BAR */}
-      <section className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Progresso Acadêmico Total</p>
-            <h4 className="text-xl font-bold text-white uppercase italic tracking-tighter">Conclusão de Ciclo</h4>
+      {/* TOP ROW: PROGRESS & FINANCIAL */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* PROGRESS BAR */}
+        <section className="lg:col-span-2 bg-white/5 border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-center">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Progresso Acadêmico Total</p>
+              <h4 className="text-xl font-bold text-white uppercase italic tracking-tighter">Conclusão de Ciclo</h4>
+            </div>
+            <span className="text-2xl font-black text-[#ed1c24] italic">{isCleared ? 100 : progressPercentage}%</span>
           </div>
-          <span className="text-2xl font-black text-[#ed1c24] italic">{isCleared ? 100 : progressPercentage}%</span>
-        </div>
-        <div className="w-full h-4 bg-black rounded-full overflow-hidden border border-white/5">
-          <div 
-            className="h-full bg-gradient-to-r from-[#ed1c24] to-[#ff4d4d] shadow-[0_0_15px_rgba(237,28,36,0.4)] transition-all duration-1000 ease-out" 
-            style={{ width: `${isCleared ? 100 : progressPercentage}%` }}
-          />
-        </div>
-      </section>
+          <div className="w-full h-4 bg-black rounded-full overflow-hidden border border-white/5">
+            <div 
+              className="h-full bg-gradient-to-r from-[#ed1c24] to-[#ff4d4d] shadow-[0_0_15px_rgba(237,28,36,0.4)] transition-all duration-1000 ease-out" 
+              style={{ width: `${isCleared ? 100 : progressPercentage}%` }}
+            />
+          </div>
+        </section>
+
+        {/* FINANCIAL (FATURA) */}
+        <section className="bg-gradient-to-br from-[#111] to-[#050505] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-2xl">
+          <div className="absolute -right-2 -bottom-2 text-[#ed1c24] opacity-5 group-hover:opacity-10 transition-opacity">
+            <CreditCard size={120} />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <ReceiptText className="text-[#ed1c24]" size={20} />
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Financeiro Acadêmico</p>
+            </div>
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Investido</h4>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs font-bold text-white">R$</span>
+              <span className="text-4xl font-black text-white italic tracking-tighter">1.000,00</span>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">STATUS: PAGO</span>
+              </div>
+              <TrendingUp className="text-slate-700" size={16} />
+            </div>
+          </div>
+        </section>
+      </div>
 
       {/* ACADEMIC CARDS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
